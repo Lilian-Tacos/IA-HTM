@@ -17,11 +17,13 @@ public class MySynapse extends AbstractNetworkEdge {
     
     private double currentValue = new Random().nextDouble();
     private final double THRESHOLD = 0.5;
+    private MyNeuron neuron;
     
     
-    protected MySynapse(EdgeInterface _edge) {
+    protected MySynapse(EdgeInterface _edge, MyNeuron n) {
         super(_edge);
         currentValueUdpate(0);
+        neuron = n;
     }
     
     public void currentValueUdpate(double delta) {
@@ -40,5 +42,13 @@ public class MySynapse extends AbstractNetworkEdge {
             getEdge().setState(EdgeInterface.State.DESACTIVATED);
         }
     }
-    
+
+    public double getCurrentValue() {
+        return currentValue;
+    }
+
+    public MyNeuron getNeuron() {
+        return neuron;
+    }
+
 }

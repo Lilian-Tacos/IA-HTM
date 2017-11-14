@@ -13,7 +13,7 @@ import graph.NodeInterface;
  * @author farmetta
  */
 public class MyNeuron  extends AbstractNetworkNode {
-    private double value;
+    private boolean active;
 
     /**
      * TODO : dans la constrution de démonstration, les instances de MyNeuron représentent les entrées.
@@ -25,11 +25,11 @@ public class MyNeuron  extends AbstractNetworkNode {
         super(_node);
     }
 
-    public double getValue() {
-        return value;
+    public boolean isActive() {
+        return active;
     }
 
-    public void setValue(double value) {
-        this.value = value;
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

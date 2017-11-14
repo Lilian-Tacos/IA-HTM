@@ -53,7 +53,6 @@ public class MyNetwork implements Runnable {
         for (int i = 0; i < nbColumns; i++) {
             NodeInterface ni = nb.getNewNode();
             MyColumn c = new MyColumn(ni);
-            c.getNode().setPosition(i*2, 2);
             ni.setAbstractNetworkNode(c);
             
             lstMC.add(c);
@@ -65,36 +64,32 @@ public class MyNetwork implements Runnable {
         // Chaque colonne à exactement le même nombre de synapses
         for (int i =0; i < lstMC.size(); i++){
             MyColumn c = lstMC.get(i);
+            // Calcul du neuronne centrale pour la colonne
+            // On divise la colonne + 0.5 (pour ce centrer) par le total de colonne
+            // On multiplie par le nombre de neuronnes
+            // Cast en double pour la valeur exacte puis int pour arrondir au neurrone le plus proche
+            c.setCenter((int) ((double) ( ((i + 0.5) / lstMC.size()) * lstMN.size())));
+            // On place la colonne au dessus de son centre
+            // Si 2 ont le même centre = il y a plus de colonnes que de neuronnes = pas top
+            c.getNode().setPosition(c.getCenter(), 2);
             for (int j=0; j<DENSITE_INPUT_COLUMNS; j++ ){
+                // On relie la colonne à des neuronnes aléatoires via de ssynapses
                 MyNeuron n = lstMN.get(rnd.nextInt(lstMN.size()));
                 if (!n.getNode().isConnectedTo(c.getNode())) {
                     EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
-                    MySynapse s = new MySynapse(e);
+                    // Le synapse sait à quel neuronne il est reliée
+                    MySynapse s = new MySynapse(e, n);
+                    // On augmente sa valeur (définie aléatoirement) si proche du centre de la colonne
+                    // On la diminue sinon
+                    // TODO
                     e.setAbstractNetworkEdge(s);
+                    // La colonne connait tous ses synapses
                     c.addSynapse(s);
                 } else {
                     j--;
                 }
             }
         }
-
-        /*
-        // Placement des synapses de manière aléatoire
-        for (int i = 0; i < DENSITE_INPUT_COLUMNS * lstMC.size(); i++) {
-            
-            MyNeuron n = lstMN.get(rnd.nextInt(lstMN.size()));
-            MyColumn c = lstMC.get(rnd.nextInt(lstMC.size()));
-            
-            if (!n.getNode().isConnectedTo(c.getNode())) {
-                EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
-                MySynapse s = new MySynapse(e);
-                e.setAbstractNetworkEdge(s);
-                
-            } else {
-                i--;
-            }
-        }
-        */
         
     }
 
@@ -107,8 +102,12 @@ public class MyNetwork implements Runnable {
             for (MyColumn c : lstMC) {
                 double value = 0;
                 for (MySynapse s : c.getSynapses()){
-                   // TODO remonter le lien jusqu'au neuronne
+                   if (s.getNeuron().isActive()){
+                       value += s.getCurrentValue();
+                   }
                 }
+                // Min overlap
+                // Boost
                 c.setValue(value);
             }
             loop = false;

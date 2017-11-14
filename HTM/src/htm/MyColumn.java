@@ -19,6 +19,7 @@ import java.util.List;
 public class MyColumn extends AbstractNetworkNode {
     private double value;
     private ArrayList<MySynapse> synapses;
+    private int center;
 
     /**
      * TODO : Au cours de l'apprentissage, chaque colonne doit atteindre un taux d'activation. 
@@ -47,12 +48,16 @@ public class MyColumn extends AbstractNetworkNode {
         return synapses;
     }
 
-    public void setSynapses(ArrayList<MySynapse> synapses) {
-        this.synapses = synapses;
-    }
-
     public void addSynapse(MySynapse synapse){
         synapses.add(synapse);
+    }
+
+    public int getCenter() {
+        return center;
+    }
+
+    public void setCenter(int center) {
+        this.center = center;
     }
 }
 

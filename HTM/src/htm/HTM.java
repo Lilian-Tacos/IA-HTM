@@ -7,9 +7,12 @@ package htm;
 import graph.graphstream.GraphStreamBuilder;
 import graph.graphstream.MyGraphStreamEdge;
 import graph.graphstream.MyGraphStreamNode;
+import input.Entree;
 import org.graphstream.graph.*;
 import org.graphstream.graph.implementations.AbstractGraph;
 import org.graphstream.graph.implementations.SingleGraph;
+
+import java.awt.*;
 
 /**
  *
@@ -31,7 +34,7 @@ public class HTM {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-
+        int tailleGrille = 9;
 
         Graph graph = new SingleGraph("graph"); // création du graphe
         graph.setNodeFactory(new NodeFactory<MyGraphStreamNode>() {
@@ -51,9 +54,9 @@ public class HTM {
 		});
         
         GraphStreamBuilder gb = new GraphStreamBuilder(graph);
-        MyNetwork mn = new MyNetwork(gb, gb);
+        MyNetwork mn = new MyNetwork(gb, new Entree(60, new Point(0,0), null));
         
-        mn.buildNetwork(16, 5); // un réseau de démonstration avec 16 entrées et 5 colonnes
+        mn.buildNetwork(30, 10, 4);
         graph.display(false);
         
         

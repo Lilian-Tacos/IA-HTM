@@ -19,7 +19,9 @@ import java.util.List;
 public class MyColumn extends AbstractNetworkNode {
     private double value;
     private ArrayList<MySynapse> synapses;
-    private int center;
+    private boolean active;
+    private double boost;
+    private double dutyCycle;
 
     /**
      * TODO : Au cours de l'apprentissage, chaque colonne doit atteindre un taux d'activation. 
@@ -34,6 +36,7 @@ public class MyColumn extends AbstractNetworkNode {
     public MyColumn(NodeInterface _node) {
         super(_node);
         synapses = new ArrayList<MySynapse>();
+        dutyCycle = 1;
     }
 
     public double getValue() {
@@ -52,12 +55,52 @@ public class MyColumn extends AbstractNetworkNode {
         synapses.add(synapse);
     }
 
-    public int getCenter() {
-        return center;
+    public boolean isActive() {
+        return active;
     }
 
-    public void setCenter(int center) {
-        this.center = center;
+    public void setActive(boolean active) {
+        this.active = active;
+        if(this.active){
+            this.getNode().setState(NodeInterface.State.ACTIVATED);
+        }
+        else{
+            this.getNode().setState(NodeInterface.State.DESACTIVATED);
+        }
+    }
+
+    public double getBoost() {
+        return boost;
+    }
+
+    public void setBoost(double boost) {
+        this.boost = boost;
+        if (this.boost < 1){
+            this.boost = 1;
+        }
+    }
+
+    public double getDutyCycle() {
+        return dutyCycle;
+    }
+
+    public void setDutyCycle(double dutyCycle) {
+        this.dutyCycle = dutyCycle;
+        if (this.dutyCycle > 1){
+            this.dutyCycle = 1;
+        }
+        else if (this.dutyCycle < 0.000001){
+            this.dutyCycle = 0.000001;
+        }
+    }
+
+    public void updateDutyCycle(){
+        if (active){
+            setDutyCycle(dutyCycle * 1.1);
+        }
+        else {
+            setDutyCycle(dutyCycle * 0.9);
+        }
     }
 }
 

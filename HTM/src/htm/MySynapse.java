@@ -51,4 +51,8 @@ public class MySynapse extends AbstractNetworkEdge {
         return neuron;
     }
 
+    public boolean isActive(){
+        return currentValue >= THRESHOLD;
+    }
+
 }

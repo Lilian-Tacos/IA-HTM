@@ -15,14 +15,15 @@ import java.util.Random;
  */
 public class MySynapse extends AbstractNetworkEdge {
     
-    private double currentValue = new Random().nextDouble();
+    private double currentValue;
     private final double THRESHOLD = 0.5;
     private MyNeuron neuron;
     
     
     protected MySynapse(EdgeInterface _edge, MyNeuron n) {
         super(_edge);
-        currentValueUdpate(0);
+        // valeur entre 0.3 et 0.7 pour etre proche du changement (THRESHOLD)
+        currentValue = ((double) new Random().nextInt(400) + 300)/1000;
         neuron = n;
     }
     

@@ -1,23 +1,21 @@
 package input;
 
-import graph.NodeInterface;
 import htm.MyNeuron;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Random;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 public class Entree {
     private Point position;
-    private Point objectif;
     private Grille grille;
 
-    public Entree(int taille, Point debut, Point objectif){
+    public Entree(int taille, Point debut){
         this.position = debut;
-        this.objectif = objectif;
-        this.grille = new Grille(taille, debut, objectif);
+        this.grille = new Grille(taille, debut);
     }
 
     public void move(int dirX, int dirY){
@@ -27,7 +25,12 @@ public class Entree {
     // Traduit les coordonnées en une entrée binaire
     public void positionToInput(ArrayList<MyNeuron> neurons){
         // On veut qu'il y ait des intersections
-        final int RANGE_NEURONNES = (int) ( 1.1 * ((double) neurons.size() / grille.getTaille()));
+        // NB neuronnes / taille pour avoir le nombre de neuronnes par entrée SANS intersection
+        // / 2 car on a 2 entrées (X et Y)
+        // * 1.5 pour créer une intersection (50% de neuronnes en commun entre 2 valeurs voisines)
+        // / 2 car on prend cet écart à gauche et à droite du centre de la valeur
+        // = 0.375 de coeff
+        final int RANGE_NEURONNES = (int) ( 0.375 * ((double) neurons.size() / grille.getTaille()));
         // Le nombre de neuronnes pour représenter X et Y
         int neuronsPerX = neurons.size() /2;
         int neuronsPerY = neurons.size() - neuronsPerX;
@@ -65,4 +68,19 @@ public class Entree {
     public int getTaille(){
         return grille.getTaille();
     }
+
+    public void updateInput(){
+        updateInputRandom();
+    }
+
+    public void updateInputRandom(){
+        Random rand = new Random();
+        // On met à jour l'entrée pour le prochain tour
+        this.setPosition(rand.nextInt(this.getTaille()), rand.nextInt(this.getTaille()));
+    }
+
+    public void afficherEntree(){
+        System.out.println("x = "+position.x+" : y = "+position.y);
+    }
+
 }

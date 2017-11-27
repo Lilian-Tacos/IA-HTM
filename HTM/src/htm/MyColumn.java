@@ -9,7 +9,6 @@ import graph.AbstractNetworkNode;
 import graph.NodeInterface;
 
 import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -21,7 +20,7 @@ public class MyColumn extends AbstractNetworkNode {
     private ArrayList<MySynapse> synapses;
     private boolean active;
     private double boost;
-    private double dutyCycle;
+    private double freqActivation;
 
     /**
      * TODO : Au cours de l'apprentissage, chaque colonne doit atteindre un taux d'activation. 
@@ -36,7 +35,7 @@ public class MyColumn extends AbstractNetworkNode {
     public MyColumn(NodeInterface _node) {
         super(_node);
         synapses = new ArrayList<MySynapse>();
-        dutyCycle = 1;
+        freqActivation = 1;
     }
 
     public double getValue() {
@@ -80,26 +79,35 @@ public class MyColumn extends AbstractNetworkNode {
         }
     }
 
-    public double getDutyCycle() {
-        return dutyCycle;
+    public double getFreqActivation() {
+        return freqActivation;
     }
 
-    public void setDutyCycle(double dutyCycle) {
-        this.dutyCycle = dutyCycle;
-        if (this.dutyCycle > 1){
-            this.dutyCycle = 1;
+    public void setFreqActivation(double freqActivation) {
+        this.freqActivation = freqActivation;
+        if (this.freqActivation > 1){
+            this.freqActivation = 1;
         }
-        else if (this.dutyCycle < 0.000001){
-            this.dutyCycle = 0.000001;
+        else if (this.freqActivation < 0.000001){
+            this.freqActivation = 0.000001;
         }
     }
 
-    public void updateDutyCycle(){
+    public void updateFreqActivation(){
         if (active){
-            setDutyCycle(dutyCycle * 1.1);
+            setFreqActivation(freqActivation * 1.1);
         }
         else {
-            setDutyCycle(dutyCycle * 0.9);
+            setFreqActivation(freqActivation * 0.9);
+        }
+    }
+
+    public void updateBoost(){
+        if (active){
+            setBoost(boost * 0.9);
+        }
+        else {
+            setBoost(boost * 1.1);
         }
     }
 }

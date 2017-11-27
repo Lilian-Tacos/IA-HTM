@@ -34,7 +34,9 @@ public class HTM {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        int tailleGrille = 9;
+        // Variables du réseau
+        final int tailleGrille = 5, nbInputs = 40, nbColumns = 6, nbMaxColActive = 3, nbApprentissage = 200;
+        final boolean splitColonnes = true;
 
         Graph graph = new SingleGraph("graph"); // création du graphe
         graph.setNodeFactory(new NodeFactory<MyGraphStreamNode>() {
@@ -54,17 +56,13 @@ public class HTM {
 		});
         
         GraphStreamBuilder gb = new GraphStreamBuilder(graph);
-        MyNetwork mn = new MyNetwork(gb, new Entree(60, new Point(0,0), null));
+        MyNetwork mn = new MyNetwork(gb, new Entree(tailleGrille, new Point(0,0)));
         
-        mn.buildNetwork(30, 10, 4);
+        mn.buildNetwork(nbInputs, nbColumns, nbMaxColActive, nbApprentissage, splitColonnes);
         graph.display(false);
-        
-        
+
+
         new Thread(mn).start(); // exécution d'un processus d'apprentissage, à définir, pour mn
-        
-        
-        
-        
     }
     
 }

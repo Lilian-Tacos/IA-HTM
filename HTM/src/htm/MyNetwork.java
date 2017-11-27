@@ -33,6 +33,7 @@ public class MyNetwork implements Runnable {
 
     private Entree input;
     private int NB_MAX_COL_ACTIVE;
+    private int nbApprentissage;
     
     
     public MyNetwork(GraphStreamBuilder _gb, Entree input) {
@@ -41,61 +42,81 @@ public class MyNetwork implements Runnable {
         this.input = input;
     }
 
-    public void buildNetwork(int nbInputs, int nbColumns, int nbMaxColActive) {
+    public void buildNetwork(int nbInputs, int nbColumns, int nbMaxColActive, int nbApprentissage, boolean splitColonnes) {
         this.NB_MAX_COL_ACTIVE = nbMaxColActive;
         
         // création des entrées
         lstMN = new ArrayList<MyNeuron>();
-        for (int i = 0; i < 2 * nbInputs; i++) {
+        for (int i = 0; i < nbInputs; i++) {
             NodeInterface ni = nb.getNewNode();
             MyNeuron n = new MyNeuron(ni);
-            n.getNode().setPosition(i, 0);
+            // On crée un espace au milieu pour délimité les 2 entrées
+            n.getNode().setPosition(i + (i >= nbInputs/2? 2:0), 0);
             ni.setAbstractNetworkNode(n);
             lstMN.add(n);
         }
         // création des colonnes
         lstMC = new ArrayList<MyColumn>();
-        int nbColonnes = 2 * nbColumns;
-        for (int i = 0; i < nbColonnes; i++) {
+        for (int i = 0; i < nbColumns; i++) {
             NodeInterface ni = nb.getNewNode();
             MyColumn c = new MyColumn(ni);
             // On centre les colonnes pour un bel affichage
-            c.getNode().setPosition((int) (double) ( ((i + 0.5) / nbColonnes) * lstMN.size()), nbInputs);
+            c.getNode().setPosition((int) (double) ( ((i + 0.5) / nbColumns) * (lstMN.size() + 2)), nbInputs/2);
             ni.setAbstractNetworkNode(c);
             lstMC.add(c);
         }
 
+
         // Création des synapses
-        // La première moitié des colonnes est reliée à la première moitiée des neuronnes
-        for (int i=0; i<nbColumns; i++){
-            MyColumn c = lstMC.get(i);
-            for (int j=0; j<nbInputs; j++ ){
-                // On relie la colonne à toute la première moitié des neuronnes via des synapses
-                MyNeuron n = lstMN.get(j);
-                EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
-                // Le synapse sait à quel neuronne il est reliée
-                MySynapse s = new MySynapse(e, n);
-                e.setAbstractNetworkEdge(s);
-                // La colonne connait tous ses synapses
-                c.addSynapse(s);
+        if (splitColonnes){
+            // La première moitié des colonnes est reliée à la première moitié des neuronnes
+            for (int i = 0; i < nbColumns/2; i++) {
+                MyColumn c = lstMC.get(i);
+                for (int j = 0; j < nbInputs/2; j++) {
+                    // On relie la colonne à la première moitié des neuronnes
+                    MyNeuron n = lstMN.get(j);
+                    EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                    // Le synapse sait à quel neuronne il est reliée
+                    MySynapse s = new MySynapse(e, n);
+                    e.setAbstractNetworkEdge(s);
+                    // La colonne connait tous ses synapses
+                    c.addSynapse(s);
+                }
+            }
+            // Et la deuxième moitié des colonnes est reliée à la deuxième moitié des neuronnes
+            for (int i = nbColumns/2; i < nbColumns; i++) {
+                MyColumn c = lstMC.get(i);
+                for (int j = nbInputs/2; j < nbInputs; j++) {
+                    // On relie la colonne à la deuxième moitié des neuronnes
+                    MyNeuron n = lstMN.get(j);
+                    EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                    // Le synapse sait à quel neuronne il est reliée
+                    MySynapse s = new MySynapse(e, n);
+                    e.setAbstractNetworkEdge(s);
+                    // La colonne connait tous ses synapses
+                    c.addSynapse(s);
+                }
+            }
+        }
+        else {
+            // Toutes les colonnes sont reliées à tous les neuronnes
+            for (int i = 0; i < nbColumns; i++) {
+                MyColumn c = lstMC.get(i);
+                for (int j = 0; j < nbInputs; j++) {
+                    // On relie la colonne à tous les neuronnes
+                    MyNeuron n = lstMN.get(j);
+                    EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                    // Le synapse sait à quel neuronne il est reliée
+                    MySynapse s = new MySynapse(e, n);
+                    e.setAbstractNetworkEdge(s);
+                    // La colonne connait tous ses synapses
+                    c.addSynapse(s);
+                }
             }
         }
 
-        // La deuxième moitié des colonnes est reliée à la deuxième moitiée des neuronnes
-        for (int i=nbColumns; i<lstMC.size(); i++){
-            MyColumn c = lstMC.get(i);
-            for (int j=nbInputs; j<lstMN.size(); j++ ){
-                // On relie la colonne à toute la première moitié des neuronnes via des synapses
-                MyNeuron n = lstMN.get(j);
-                EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
-                // Le synapse sait à quel neuronne il est reliée
-                MySynapse s = new MySynapse(e, n);
-                e.setAbstractNetworkEdge(s);
-                // La colonne connait tous ses synapses
-                c.addSynapse(s);
-            }
-        }
-        
+        // Le nombre d'entrées successives sans animation afin de faire un apprentissage rapide
+        this.nbApprentissage = nbApprentissage;
     }
 
     @Override
@@ -104,6 +125,9 @@ public class MyNetwork implements Runnable {
         final double MIN_VALUE = 0.8;
         int nbLoops = 0;
         while (loop) {
+            // On met à jour la valeur de l'entrée (random, ..., voir fonction uodateInput)
+            input.updateInput();
+
             // On met à jour les neuronnes en fonction de l'entrée
             input.positionToInput(lstMN);
 
@@ -150,6 +174,7 @@ public class MyNetwork implements Runnable {
                         colMin = c;
                     }
                 }
+                // On l'enlève des colonnes à activer
                 toActive.remove(colMin);
             }
             // On active les colonnes restantes
@@ -161,6 +186,7 @@ public class MyNetwork implements Runnable {
             // Mise à jour sur les colonnes actives
             for (MyColumn c : toActive){
                 for (MySynapse s : c.getSynapses()){
+                    // On met à jour les poids des synapses
                     if (s.getNeuron().isActive()){
                         s.currentValueUdpate(0.075);
                     }
@@ -170,31 +196,28 @@ public class MyNetwork implements Runnable {
                 }
             }
             // Mise à jour de toutes les colonnes
-            // Calcul du minDutyCycle (the minimum desired firing rate for a cell)
-            double minDutyCycle = lstMC.get(0).getDutyCycle();
+            // Mise à jour de la "fréquence d'activation" ( *1.1 si acitve, *0.9 sinon)
+            // On recherche la plus petite valeur
+            double minFreqActivation = lstMC.get(0).getFreqActivation();
             for (MyColumn c : lstMC){
-                if (c.getDutyCycle() > minDutyCycle){
-                    minDutyCycle = c.getDutyCycle();
+                if (c.getFreqActivation() > minFreqActivation){
+                    minFreqActivation = c.getFreqActivation();
                 }
             }
-            // 0.5 pour essayer de conserver le boost autour de 2
-            minDutyCycle *= 0.5;
             // Mise à jour de toutes les colonnes
             for (MyColumn c : lstMC){
-                // On augmente le dutyCycle si la colonne est active, on le diminue sinon
-                c.updateDutyCycle();
+                // On augmente la fréquence si la colonne est active, on la diminue sinon
+                c.updateFreqActivation();
                 // Boost >= 1
-                c.setBoost(c.getDutyCycle() / minDutyCycle);
+                // On met à jour le boost linéairement, il vaut 2.5 pour la colonne qui était la moins active
+                c.setBoost(0.5 + 2 * minFreqActivation / c.getFreqActivation());
             }
 
 
-
-            Random rand = new Random();
-            // On met à jour l'entrée pour le prochain tour
-            input.setPosition(rand.nextInt(input.getTaille()), rand.nextInt(input.getTaille()));
             // Tempo pour voir l'animation, au début on laisse une phase d'apprentissage
-            if(nbLoops>200) {
+            if(nbLoops>this.nbApprentissage) {
                 try {
+                    input.afficherEntree();
                     Thread.sleep(2000);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(MyNetwork.class.getName()).log(Level.SEVERE, null, ex);

@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.StrictMath.abs;
+
 
 /**
  *
@@ -41,7 +43,7 @@ public class MyNetwork implements Runnable {
         this.input = input;
     }
 
-    public void buildNetwork(int nbInputs, int nbColumns, int nbMaxColActive, int nbApprentissage, boolean splitColonnes, int longueurMemoireActivations) {
+    public void buildNetwork(int nbInputs, int nbColumns, int nbMaxColActive, int nbApprentissage, boolean splitColonnes, int longueurMemoireActivations, int voisinage) {
         this.NB_MAX_COL_ACTIVE = nbMaxColActive;
         
         // création des entrées
@@ -97,6 +99,33 @@ public class MyNetwork implements Runnable {
                 }
             }
         }
+        else if (voisinage > 0){
+            // Les colonnes sont reliées aux neuronnes proches
+            for (int i = 0; i < nbColumns; i++) {
+                MyColumn c = lstMC.get(i);
+                // Calcul du neuronne centrale pour la colonne
+                // On divise la colonne + 0.5 (pour ce centrer) par le total de colonne
+                // On multiplie par le nombre de neuronnes
+                // Cast en double pour la valeur exacte puis int pour arrondir au neurrone le plus proche
+                int centre = ((int) ((double) (((i + 0.5) / lstMC.size()) * lstMN.size())));
+                // Pour chacun des neuronnes voisins
+                for (int j = centre - voisinage; j < centre + voisinage; j++) {
+                    // On relit ce neuronne à la colonne
+                    if (j >= 0 && j < lstMN.size()){
+                        MyNeuron n = lstMN.get(j);
+                        EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                        // Le synapse sait à quel neuronne il est reliée
+                        MySynapse s = new MySynapse(e, n);
+                        // On augmente le poids des synapses au centre (+0.3 au centre, puis 0.15, ...)
+                        int diff = 1 + abs(centre - voisinage);
+                        s.currentValueUdpate(0.3/diff);
+                        e.setAbstractNetworkEdge(s);
+                        // La colonne connait tous ses synapses
+                        c.addSynapse(s);
+                    }
+                }
+            }
+        }
         else {
             // Toutes les colonnes sont reliées à tous les neuronnes
             for (int i = 0; i < nbColumns; i++) {
@@ -136,21 +165,23 @@ public class MyNetwork implements Runnable {
             for (MyColumn c : lstMC) {
                 double value = 0;
                 for (MySynapse s : c.getSynapses()){
-                    /*
+                    // Avec boost global
                     // Poids du synapse en prenant en compte le boost
                     // ce boost permet d'activer virtuellement des liens, si jamais la colonne n'a aucun synapse actif par exemple
                     double poids = s.getCurrentValue() * c.getBoostGlobal();
                     // Si le neuronne et le synapse (en comptant le boost) sont actifs
                     if (poids > s.getTHRESHOLD() && s.getNeuron().isActive()){
-                        // On ajoute le poids du synapse (compris entre treshold (0.5) et boost)
+                        // On ajoute le poids du synapse * le boost (compris entre treshold (0.5) et boost)
                         value += poids;
-                    }*/
+                    }
+                    /*
                     // Sans boost global
                     // Si le neuronne et le synapse sont actifs
                     if (s.isActive() && s.getNeuron().isActive()){
-                        // On ajoute le poids du synapse (compris entre treshold (0.5) et boost)
+                        // On ajoute le poids du synapse (compris entre treshold (0.5) et 1)
                         value += s.getCurrentValue();
                     }
+                    */
                 }
                 // Min overlap
                 if (value < MIN_VALUE){

@@ -24,6 +24,8 @@ public class MySynapse extends AbstractNetworkEdge {
         super(_edge);
         // valeur entre 0.3 et 0.7 pour etre proche du changement (THRESHOLD)
         currentValue = ((double) new Random().nextInt(400) + 300)/1000;
+        // Update pour désactiver les synapses < THRESHOLD
+        currentValueUdpate(0);
         neuron = n;
     }
     

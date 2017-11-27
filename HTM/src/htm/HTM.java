@@ -40,7 +40,8 @@ public class HTM {
                 nbColumns = 6,
                 nbMaxColActive = 2,
                 longueurMemoireActivations = 50,
-                nbApprentissage = 500;
+                nbApprentissage = 200,
+                voisinage = 0;
         final boolean splitColonnes = true,
                 entreeManuel = false;
 
@@ -64,7 +65,7 @@ public class HTM {
         GraphStreamBuilder gb = new GraphStreamBuilder(graph);
         MyNetwork mn = new MyNetwork(gb, new Entree(tailleGrille, new Point(0,0), entreeManuel));
         
-        mn.buildNetwork(nbInputs, nbColumns, nbMaxColActive, nbApprentissage, splitColonnes, longueurMemoireActivations);
+        mn.buildNetwork(nbInputs, nbColumns, nbMaxColActive, nbApprentissage, splitColonnes, longueurMemoireActivations, voisinage);
         graph.display(false);
 
 

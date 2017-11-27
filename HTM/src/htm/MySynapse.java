@@ -56,4 +56,8 @@ public class MySynapse extends AbstractNetworkEdge {
         return currentValue >= THRESHOLD;
     }
 
+    public double getTHRESHOLD(){
+        return THRESHOLD;
+    }
+
 }

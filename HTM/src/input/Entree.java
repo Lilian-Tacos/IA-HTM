@@ -5,6 +5,7 @@ import htm.MyNeuron;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -12,10 +13,12 @@ import static java.lang.Math.min;
 public class Entree {
     private Point position;
     private Grille grille;
+    private boolean manuel;
 
-    public Entree(int taille, Point debut){
+    public Entree(int taille, Point debut, boolean manuel){
         this.position = debut;
         this.grille = new Grille(taille, debut);
+        this.manuel = manuel;
     }
 
     public void move(int dirX, int dirY){
@@ -69,8 +72,27 @@ public class Entree {
         return grille.getTaille();
     }
 
-    public void updateInput(){
-        updateInputRandom();
+    public void updateInput(boolean finApprentissage){
+        // Si on est en mode manuel et qu'on a fini l'apprentissage, l'utilisateur saisie la valeur
+        if(manuel && finApprentissage){
+            Scanner sc = new Scanner(System.in);
+            String in;
+            int x;
+            do {
+                System.out.print("x = ");
+                in = sc.nextLine();
+            } while (!in.matches("\\d+"));
+            x = Integer.parseInt(in);
+            do {
+                System.out.print("y = ");
+                in = sc.nextLine();
+            } while (!in.matches("\\d+"));
+            setPosition(x, Integer.parseInt(in));
+        }
+        // Sinon, on génère automatiquement (random)
+        else {
+            updateInputRandom();
+        }
     }
 
     public void updateInputRandom(){

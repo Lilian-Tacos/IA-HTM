@@ -9,6 +9,7 @@ import graph.AbstractNetworkNode;
 import graph.NodeInterface;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 
 /**
@@ -19,8 +20,11 @@ public class MyColumn extends AbstractNetworkNode {
     private double value;
     private ArrayList<MySynapse> synapses;
     private boolean active;
-    private double boost;
-    private double freqActivation;
+    private double boostGlobal;
+    private double boostInactivite;
+    private LinkedList<Boolean> lastActivations;
+    // Nombre de TRUE dans la liste (pour éviter les calculs inutils)
+    private int nbActivations;
 
     /**
      * TODO : Au cours de l'apprentissage, chaque colonne doit atteindre un taux d'activation. 
@@ -35,7 +39,10 @@ public class MyColumn extends AbstractNetworkNode {
     public MyColumn(NodeInterface _node) {
         super(_node);
         synapses = new ArrayList<MySynapse>();
-        freqActivation = 1;
+        lastActivations = new LinkedList<Boolean>();
+        nbActivations = 0;
+        boostGlobal = 1;
+        boostInactivite = 1;
     }
 
     public double getValue() {
@@ -68,47 +75,47 @@ public class MyColumn extends AbstractNetworkNode {
         }
     }
 
-    public double getBoost() {
-        return boost;
+    public double getBoostGlobal() {
+        return boostGlobal;
     }
 
-    public void setBoost(double boost) {
-        this.boost = boost;
-        if (this.boost < 1){
-            this.boost = 1;
-        }
-    }
-
-    public double getFreqActivation() {
-        return freqActivation;
-    }
-
-    public void setFreqActivation(double freqActivation) {
-        this.freqActivation = freqActivation;
-        if (this.freqActivation > 1){
-            this.freqActivation = 1;
-        }
-        else if (this.freqActivation < 0.000001){
-            this.freqActivation = 0.000001;
-        }
-    }
-
-    public void updateFreqActivation(){
+    public void updateBoostGlobal(){
         if (active){
-            setFreqActivation(freqActivation * 1.1);
+            boostGlobal = 1;
         }
         else {
-            setFreqActivation(freqActivation * 0.9);
+            boostGlobal *= 1.1;
         }
     }
 
-    public void updateBoost(){
-        if (active){
-            setBoost(boost * 0.9);
+    public double getBoostInactivite() {
+        return boostInactivite;
+    }
+
+    public void setBoostInactivite(double boostInactivite) {
+        this.boostInactivite = boostInactivite;
+        if (this.boostInactivite < 1){
+            this.boostInactivite = 1;
         }
-        else {
-            setBoost(boost * 1.1);
+    }
+
+    public void updateLastActivations(int tailleMax){
+        // On ajoute le statut actuel dans la liste
+        lastActivations.addLast(active);
+        // Si liste pleine, on enlève les anciens éléments
+        while (lastActivations.size() > tailleMax){
+            if (lastActivations.removeFirst()){
+                // Si l'élément retiré était une activation, on l'enlève du nombre d'activations
+                // Variable dynamique pour éviter de recompter le nombre de true dans la liste à chaque appel
+                nbActivations --;
+            }
         }
+    }
+
+    public double getFreqActivation(){
+        if (lastActivations.isEmpty())
+            return 0;
+        return nbActivations / lastActivations.size();
     }
 }
 

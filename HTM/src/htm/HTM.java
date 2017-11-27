@@ -35,8 +35,14 @@ public class HTM {
      */
     public static void main(String[] args) {
         // Variables du réseau
-        final int tailleGrille = 5, nbInputs = 40, nbColumns = 6, nbMaxColActive = 3, nbApprentissage = 200;
-        final boolean splitColonnes = true;
+        final int tailleGrille = 5,
+                nbInputs = 40,
+                nbColumns = 6,
+                nbMaxColActive = 2,
+                longueurMemoireActivations = 50,
+                nbApprentissage = 500;
+        final boolean splitColonnes = true,
+                entreeManuel = false;
 
         Graph graph = new SingleGraph("graph"); // création du graphe
         graph.setNodeFactory(new NodeFactory<MyGraphStreamNode>() {
@@ -56,9 +62,9 @@ public class HTM {
 		});
         
         GraphStreamBuilder gb = new GraphStreamBuilder(graph);
-        MyNetwork mn = new MyNetwork(gb, new Entree(tailleGrille, new Point(0,0)));
+        MyNetwork mn = new MyNetwork(gb, new Entree(tailleGrille, new Point(0,0), entreeManuel));
         
-        mn.buildNetwork(nbInputs, nbColumns, nbMaxColActive, nbApprentissage, splitColonnes);
+        mn.buildNetwork(nbInputs, nbColumns, nbMaxColActive, nbApprentissage, splitColonnes, longueurMemoireActivations);
         graph.display(false);
 
 

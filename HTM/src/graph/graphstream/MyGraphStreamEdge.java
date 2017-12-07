@@ -20,8 +20,7 @@ import org.graphstream.graph.implementations.AbstractNode;
  * 
  */
 public class MyGraphStreamEdge extends AbstractEdge implements EdgeInterface {
-    
-    
+
     private AbstractNetworkEdge abstractNetworkEdge;
     
     @Override
@@ -34,11 +33,8 @@ public class MyGraphStreamEdge extends AbstractEdge implements EdgeInterface {
         return abstractNetworkEdge;
     }
     
-    public MyGraphStreamEdge(String id, Node source, Node target,
-			boolean directed) {
+    public MyGraphStreamEdge(String id, Node source, Node target, boolean directed) {
         super (id, (AbstractNode) source, (AbstractNode) target, directed);
-        
-        
     }
     
     @Override

@@ -6,6 +6,7 @@
 package htm;
 import graph.graphstream.GraphStreamBuilder;
 import graph.graphstream.MyGraphStreamEdge;
+import graph.graphstream.MyGraphStreamEdge2;
 import graph.graphstream.MyGraphStreamNode;
 import input.Entree;
 import org.graphstream.graph.*;
@@ -20,30 +21,18 @@ import java.awt.*;
  */
 public class HTM {
 
-    
-    /** TODO
-     *  Terminer la construction du réseau
-     *  Dessiner suivant le type (carré et rond)
-     *  Alimenter avec des données
-     *  Préparer prototypes fonctions
-     *  Connecter un graphe
-     */
-    
-    
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
         // Variables du réseau
-        final int tailleGrille = 5,
-                nbInputs = 40,
-                nbColumns = 6,
-                nbMaxColActive = 2,
-                longueurMemoireActivations = 50,
-                nbApprentissage = 200,
-                voisinage = 0;
-        final boolean splitColonnes = true,
-                entreeManuel = false;
+        final int tailleGrille = 5, // Taille des entrées (entre 0 et taille -1)
+                nbInputs = 40,      // Nombre de neuronnes
+                nbColumns = 6,      // Nombre de colonnes
+                nbMaxColActive = 2, // Nombre max de colonnes actives simultanément
+                longueurMemoireActivations = 50, // Longueur max de la liste des dernières activations, pour la fréquence et le boost
+                nbApprentissage = 0,  // Nombre d'entrées aléatoires avant l'affichage
+                voisinage = 6;      // Moitié de la largeur du voisinage, si spliColonnes = false (0 = tous connectés)
+        final boolean splitColonnes = false,    // Sépare le réseau en 2 sous réseau (un pour chacune des entrées)
+                entreeManuel = false,   // Permet de saisir manuellement des entrées après l'apprentissage
+                afficherSynapsesInactifs = true;    // Affiche les synapses inactif (valeur < treshold)
 
         Graph graph = new SingleGraph("graph"); // création du graphe
         graph.setNodeFactory(new NodeFactory<MyGraphStreamNode>() {
@@ -51,17 +40,24 @@ public class HTM {
 				return new MyGraphStreamNode((AbstractGraph) graph, id); // les noeuds seront de type MyGraphStreamNode
 			}
 		});
-        
-        graph.setEdgeFactory(new EdgeFactory<MyGraphStreamEdge>() {
-            
-            @Override
-            public MyGraphStreamEdge newInstance(String id, Node src, Node dst, boolean directed) {
-                return new MyGraphStreamEdge(id, src, dst, directed); // les arrêtes seront du type MyGraphStreamEdge
-            }
-            
-			
-		});
-        
+
+        if (afficherSynapsesInactifs){
+            graph.setEdgeFactory(new EdgeFactory<MyGraphStreamEdge>() {
+                @Override
+                public MyGraphStreamEdge newInstance(String id, Node src, Node dst, boolean directed) {
+                    return new MyGraphStreamEdge2(id, src, dst, directed); // les arrêtes seront du type MyGraphStreamEdge
+                }
+            });
+        }
+        else {
+            graph.setEdgeFactory(new EdgeFactory<MyGraphStreamEdge>() {
+                @Override
+                public MyGraphStreamEdge newInstance(String id, Node src, Node dst, boolean directed) {
+                    return new MyGraphStreamEdge(id, src, dst, directed); // les arrêtes seront du type MyGraphStreamEdge
+                }
+            });
+        }
+
         GraphStreamBuilder gb = new GraphStreamBuilder(graph);
         MyNetwork mn = new MyNetwork(gb, new Entree(tailleGrille, new Point(0,0), entreeManuel));
         
@@ -69,7 +65,7 @@ public class HTM {
         graph.display(false);
 
 
-        new Thread(mn).start(); // exécution d'un processus d'apprentissage, à définir, pour mn
+        new Thread(mn).start();
     }
     
 }

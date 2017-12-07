@@ -106,7 +106,7 @@ public class MyNetwork implements Runnable {
                 // Calcul du neuronne centrale pour la colonne
                 // On divise la colonne + 0.5 (pour ce centrer) par le total de colonne
                 // On multiplie par le nombre de neuronnes
-                // Cast en double pour la valeur exacte puis int pour arrondir au neurrone le plus proche
+                // Cast en double pour la valeur exacte puis int pour arrondir au neurone le plus proche
                 int centre = ((int) ((double) (((i + 0.5) / lstMC.size()) * lstMN.size())));
                 // Pour chacun des neuronnes voisins
                 for (int j = centre - voisinage; j < centre + voisinage; j++) {
@@ -116,9 +116,10 @@ public class MyNetwork implements Runnable {
                         EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
                         // Le synapse sait à quel neuronne il est reliée
                         MySynapse s = new MySynapse(e, n);
-                        // On augmente le poids des synapses au centre (+0.3 au centre, puis 0.15, ...)
-                        int diff = 1 + abs(centre - voisinage);
-                        s.currentValueUdpate(0.3/diff);
+                        // Poid des synapses linéaire, 0.7 au centre, 0.3 au bord
+                        s.currentValueUdpate(-1);
+                        double diff = voisinage - abs(centre - j);
+                        s.currentValueUdpate(0.3 + diff/voisinage * 0.4);
                         e.setAbstractNetworkEdge(s);
                         // La colonne connait tous ses synapses
                         c.addSynapse(s);
@@ -165,31 +166,22 @@ public class MyNetwork implements Runnable {
             for (MyColumn c : lstMC) {
                 double value = 0;
                 for (MySynapse s : c.getSynapses()){
-                    // Avec boost global
-                    // Poids du synapse en prenant en compte le boost
+                    // Poids du synapse en prenant en compte le boost d'inactivitée
                     // ce boost permet d'activer virtuellement des liens, si jamais la colonne n'a aucun synapse actif par exemple
-                    double poids = s.getCurrentValue() * c.getBoostGlobal();
+                    double poids = s.getCurrentValue() * c.getBoostInactivite();
                     // Si le neuronne et le synapse (en comptant le boost) sont actifs
                     if (poids > s.getTHRESHOLD() && s.getNeuron().isActive()){
                         // On ajoute le poids du synapse * le boost (compris entre treshold (0.5) et boost)
                         value += poids;
                     }
-                    /*
-                    // Sans boost global
-                    // Si le neuronne et le synapse sont actifs
-                    if (s.isActive() && s.getNeuron().isActive()){
-                        // On ajoute le poids du synapse (compris entre treshold (0.5) et 1)
-                        value += s.getCurrentValue();
-                    }
-                    */
                 }
-                // Min overlap
+                // Min overlap, la colonne doit dépasser un seuil pour s'activer
                 if (value < MIN_VALUE){
                     value = 0;
                 }
-                // Boost si on n'a pas été activée depuis longtemps
+                // Boost si on a perdu plusieurs "concours" avec les autres colonnes
                 else{
-                    value *= c.getBoostInactivite();
+                    value *= c.getBoostGlobal();
                 }
                 c.setValue(value);
             }
@@ -218,17 +210,22 @@ public class MyNetwork implements Runnable {
                 }
                 // On l'enlève des colonnes à activer
                 toActive.remove(colMin);
+                // On augmente son boost global pour qu'elle ait plus de chances la prochaine fois (boost *= 1.2)
+                colMin.updateBoostGlobal();
             }
             // On active les colonnes restantes
             for (MyColumn c : toActive) {
                 c.setActive(true);
+                // On réinitialise leur boost global (=1)
+                c.reiniBoostGlobal();
             }
 
             // 3) Apprentissage : On met à jour les poids des synapses des colonnes actives
             // Mise à jour sur les colonnes actives
             for (MyColumn c : toActive){
                 for (MySynapse s : c.getSynapses()){
-                    // On met à jour les poids des synapses
+                    // On met à jour les poids des synapses des colonnes actives
+                    // + 0.05 si le neuronne est actif, - 0.05 sinon
                     if (s.getNeuron().isActive()){
                         s.currentValueUdpate(UP_SYNAPSE);
                     }
@@ -237,7 +234,7 @@ public class MyNetwork implements Runnable {
                     }
                 }
             }
-            // Boost
+            // Boost d'inactivité
             // Frequence max des colonnes
             double maxFreq = lstMC.get(0).getFreqActivation();
             for (MyColumn c : lstMC){
@@ -245,16 +242,16 @@ public class MyNetwork implements Runnable {
                     maxFreq = c.getFreqActivation();
                 }
             }
-            // Mise à jour du boost de toutes les colonnes
+            // Mise à jour du boost d'inactivité de toutes les colonnes
             for (MyColumn c : lstMC){
-                // On augmente le boost global si on n'a pas été activé ( *1.1), on le réinitialise sinon ( =1)
-                c.updateBoostGlobal();
                 // On met à jour la liste des dernières activités
                 c.updateLastActivations(longueurMemoireActivations);
                 // On boost les colonnes qui n'ont pas été activées "depuis longtemps"
-                if (c.getFreqActivation() < 0.1 * maxFreq) {
-                    c.setBoostInactivite(c.getBoostInactivite() * 5);
+                // 20 fois moins d'activations que la colonne la plus active
+                if (c.getFreqActivation() < 0.05 * maxFreq) {
+                    c.setBoostInactivite(c.getBoostInactivite() * 2);
                 }
+                // Si la colonne a été assez active on réinitialise son boost
                 else {
                     c.setBoostInactivite(1);
                 }

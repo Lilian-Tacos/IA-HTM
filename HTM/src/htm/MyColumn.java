@@ -23,18 +23,9 @@ public class MyColumn extends AbstractNetworkNode {
     private double boostGlobal;
     private double boostInactivite;
     private LinkedList<Boolean> lastActivations;
-    // Nombre de TRUE dans la liste (pour éviter les calculs inutils)
+    // Nombre de TRUE dans la liste (pour éviter les calculs inutiles)
     private int nbActivations;
 
-    /**
-     * TODO : Au cours de l'apprentissage, chaque colonne doit atteindre un taux d'activation. 
-     * Une colonnne est activée si elle reçoit suffisament de retours positif de ses synapses 
-     * (le retour est positif si la synapse est active et que son entrée associée l'est également).
-     * 
-     * Pour l'apprentissage, parcourir les synapses en entrée, et faire évoluer les poids synaptiques adéquatement.
-     * 
-     */
-    
     
     public MyColumn(NodeInterface _node) {
         super(_node);
@@ -80,12 +71,11 @@ public class MyColumn extends AbstractNetworkNode {
     }
 
     public void updateBoostGlobal(){
-        if (active){
-            boostGlobal = 1;
-        }
-        else {
-            boostGlobal *= 1.1;
-        }
+        boostGlobal *= 1.2;
+    }
+
+    public void reiniBoostGlobal(){
+        boostGlobal = 1;
     }
 
     public double getBoostInactivite() {

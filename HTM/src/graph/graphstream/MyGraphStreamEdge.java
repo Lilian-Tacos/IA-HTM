@@ -44,9 +44,12 @@ public class MyGraphStreamEdge extends AbstractEdge implements EdgeInterface {
     @Override
     public void setState(State s) {
             switch (s) {
-                case ACTIVATED : addAttribute("ui.style", "fill-color: red;");
+                case ACTIVATED :
+                    addAttribute("ui.style", "visibility-mode: normal; fill-color: black;");
                     break;
-                case DESACTIVATED : addAttribute("ui.style", "fill-color: black;");     
+                case DESACTIVATED :
+                    addAttribute("ui.style", "visibility-mode: hidden;");
+                    break;
             }
     }
 

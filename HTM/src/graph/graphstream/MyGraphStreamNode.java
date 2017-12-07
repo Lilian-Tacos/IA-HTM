@@ -92,7 +92,7 @@ public class MyGraphStreamNode extends SingleNode implements NodeInterface {
             switch (s) {
                 case ACTIVATED : addAttribute("ui.style", "fill-color: red;");
                     break;
-                case DESACTIVATED : addAttribute("ui.style", "fill-color: black;");     
+                case DESACTIVATED : addAttribute("ui.style", "fill-color: black;");
             }
     }
     

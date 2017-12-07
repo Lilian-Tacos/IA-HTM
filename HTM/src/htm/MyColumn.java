@@ -9,7 +9,7 @@ import graph.AbstractNetworkNode;
 import graph.NodeInterface;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedList;
 
 
 /**
@@ -19,7 +19,12 @@ import java.util.List;
 public class MyColumn extends AbstractNetworkNode {
     private double value;
     private ArrayList<MySynapse> synapses;
-    private int center;
+    private boolean active;
+    private double boostGlobal;
+    private double boostInactivite;
+    private LinkedList<Boolean> lastActivations;
+    // Nombre de TRUE dans la liste (pour éviter les calculs inutils)
+    private int nbActivations;
 
     /**
      * TODO : Au cours de l'apprentissage, chaque colonne doit atteindre un taux d'activation. 
@@ -34,6 +39,10 @@ public class MyColumn extends AbstractNetworkNode {
     public MyColumn(NodeInterface _node) {
         super(_node);
         synapses = new ArrayList<MySynapse>();
+        lastActivations = new LinkedList<Boolean>();
+        nbActivations = 0;
+        boostGlobal = 1;
+        boostInactivite = 1;
     }
 
     public double getValue() {
@@ -52,12 +61,61 @@ public class MyColumn extends AbstractNetworkNode {
         synapses.add(synapse);
     }
 
-    public int getCenter() {
-        return center;
+    public boolean isActive() {
+        return active;
     }
 
-    public void setCenter(int center) {
-        this.center = center;
+    public void setActive(boolean active) {
+        this.active = active;
+        if(this.active){
+            this.getNode().setState(NodeInterface.State.ACTIVATED);
+        }
+        else{
+            this.getNode().setState(NodeInterface.State.DESACTIVATED);
+        }
+    }
+
+    public double getBoostGlobal() {
+        return boostGlobal;
+    }
+
+    public void updateBoostGlobal(){
+        if (active){
+            boostGlobal = 1;
+        }
+        else {
+            boostGlobal *= 1.1;
+        }
+    }
+
+    public double getBoostInactivite() {
+        return boostInactivite;
+    }
+
+    public void setBoostInactivite(double boostInactivite) {
+        this.boostInactivite = boostInactivite;
+        if (this.boostInactivite < 1){
+            this.boostInactivite = 1;
+        }
+    }
+
+    public void updateLastActivations(int tailleMax){
+        // On ajoute le statut actuel dans la liste
+        lastActivations.addLast(active);
+        // Si liste pleine, on enlève les anciens éléments
+        while (lastActivations.size() > tailleMax){
+            if (lastActivations.removeFirst()){
+                // Si l'élément retiré était une activation, on l'enlève du nombre d'activations
+                // Variable dynamique pour éviter de recompter le nombre de true dans la liste à chaque appel
+                nbActivations --;
+            }
+        }
+    }
+
+    public double getFreqActivation(){
+        if (lastActivations.isEmpty())
+            return 0;
+        return nbActivations / lastActivations.size();
     }
 }
 

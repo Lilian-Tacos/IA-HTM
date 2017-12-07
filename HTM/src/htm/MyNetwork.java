@@ -9,10 +9,14 @@ import graph.EdgeBuilder;
 import graph.EdgeInterface;
 import graph.NodeBuilder;
 import graph.NodeInterface;
+import graph.graphstream.GraphStreamBuilder;
+import input.Entree;
+
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.lang.StrictMath.abs;
 
 
 /**
@@ -24,27 +28,31 @@ public class MyNetwork implements Runnable {
     private NodeBuilder nb;
     private EdgeBuilder eb;
     
-    ArrayList<MyNeuron> lstMN;
-    ArrayList<MyColumn> lstMC;
-    
-    
-    public MyNetwork(NodeBuilder _nb, EdgeBuilder _eb) {
-        nb = _nb;
-        eb = _eb;
-    }
-    
+    private ArrayList<MyNeuron> lstMN;
+    private ArrayList<MyColumn> lstMC;
 
-    // Nombre de Synapses en fonction du nombre de sorties
-    private static final int DENSITE_INPUT_COLUMNS = 8;
-    public void buildNetwork(int nbInputs, int nbColumns) {
-        
+    private Entree input;
+    private int NB_MAX_COL_ACTIVE;
+    private int nbApprentissage;
+    private int longueurMemoireActivations;
+    
+    
+    public MyNetwork(GraphStreamBuilder _gb, Entree input) {
+        nb = _gb;
+        eb = _gb;
+        this.input = input;
+    }
+
+    public void buildNetwork(int nbInputs, int nbColumns, int nbMaxColActive, int nbApprentissage, boolean splitColonnes, int longueurMemoireActivations, int voisinage) {
+        this.NB_MAX_COL_ACTIVE = nbMaxColActive;
         
         // création des entrées
         lstMN = new ArrayList<MyNeuron>();
         for (int i = 0; i < nbInputs; i++) {
             NodeInterface ni = nb.getNewNode();
             MyNeuron n = new MyNeuron(ni);
-            n.getNode().setPosition(i, 0);
+            // On crée un espace au milieu pour délimité les 2 entrées
+            n.getNode().setPosition(i + (i >= nbInputs/2? 2:0), 0);
             ni.setAbstractNetworkNode(n);
             lstMN.add(n);
         }
@@ -53,90 +61,216 @@ public class MyNetwork implements Runnable {
         for (int i = 0; i < nbColumns; i++) {
             NodeInterface ni = nb.getNewNode();
             MyColumn c = new MyColumn(ni);
+            // On centre les colonnes pour un bel affichage
+            c.getNode().setPosition((int) (double) ( ((i + 0.5) / nbColumns) * (lstMN.size() + 2)), nbInputs/2);
             ni.setAbstractNetworkNode(c);
-            
             lstMC.add(c);
         }
 
 
-        Random rnd = new Random();
         // Création des synapses
-        // Chaque colonne à exactement le même nombre de synapses
-        for (int i =0; i < lstMC.size(); i++){
-            MyColumn c = lstMC.get(i);
-            // Calcul du neuronne centrale pour la colonne
-            // On divise la colonne + 0.5 (pour ce centrer) par le total de colonne
-            // On multiplie par le nombre de neuronnes
-            // Cast en double pour la valeur exacte puis int pour arrondir au neurrone le plus proche
-            c.setCenter((int) ((double) ( ((i + 0.5) / lstMC.size()) * lstMN.size())));
-            // On place la colonne au dessus de son centre
-            // Si 2 ont le même centre = il y a plus de colonnes que de neuronnes = pas top
-            c.getNode().setPosition(c.getCenter(), 2);
-            for (int j=0; j<DENSITE_INPUT_COLUMNS; j++ ){
-                // On relie la colonne à des neuronnes aléatoires via de ssynapses
-                MyNeuron n = lstMN.get(rnd.nextInt(lstMN.size()));
-                if (!n.getNode().isConnectedTo(c.getNode())) {
+        if (splitColonnes){
+            // La première moitié des colonnes est reliée à la première moitié des neuronnes
+            for (int i = 0; i < nbColumns/2; i++) {
+                MyColumn c = lstMC.get(i);
+                for (int j = 0; j < nbInputs/2; j++) {
+                    // On relie la colonne à la première moitié des neuronnes
+                    MyNeuron n = lstMN.get(j);
                     EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
                     // Le synapse sait à quel neuronne il est reliée
                     MySynapse s = new MySynapse(e, n);
-                    // On augmente sa valeur (définie aléatoirement) si proche du centre de la colonne
-                    // On la diminue sinon
-                    // TODO
                     e.setAbstractNetworkEdge(s);
                     // La colonne connait tous ses synapses
                     c.addSynapse(s);
-                } else {
-                    j--;
+                }
+            }
+            // Et la deuxième moitié des colonnes est reliée à la deuxième moitié des neuronnes
+            for (int i = nbColumns/2; i < nbColumns; i++) {
+                MyColumn c = lstMC.get(i);
+                for (int j = nbInputs/2; j < nbInputs; j++) {
+                    // On relie la colonne à la deuxième moitié des neuronnes
+                    MyNeuron n = lstMN.get(j);
+                    EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                    // Le synapse sait à quel neuronne il est reliée
+                    MySynapse s = new MySynapse(e, n);
+                    e.setAbstractNetworkEdge(s);
+                    // La colonne connait tous ses synapses
+                    c.addSynapse(s);
                 }
             }
         }
-        
+        else if (voisinage > 0){
+            // Les colonnes sont reliées aux neuronnes proches
+            for (int i = 0; i < nbColumns; i++) {
+                MyColumn c = lstMC.get(i);
+                // Calcul du neuronne centrale pour la colonne
+                // On divise la colonne + 0.5 (pour ce centrer) par le total de colonne
+                // On multiplie par le nombre de neuronnes
+                // Cast en double pour la valeur exacte puis int pour arrondir au neurrone le plus proche
+                int centre = ((int) ((double) (((i + 0.5) / lstMC.size()) * lstMN.size())));
+                // Pour chacun des neuronnes voisins
+                for (int j = centre - voisinage; j < centre + voisinage; j++) {
+                    // On relit ce neuronne à la colonne
+                    if (j >= 0 && j < lstMN.size()){
+                        MyNeuron n = lstMN.get(j);
+                        EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                        // Le synapse sait à quel neuronne il est reliée
+                        MySynapse s = new MySynapse(e, n);
+                        // On augmente le poids des synapses au centre (+0.3 au centre, puis 0.15, ...)
+                        int diff = 1 + abs(centre - voisinage);
+                        s.currentValueUdpate(0.3/diff);
+                        e.setAbstractNetworkEdge(s);
+                        // La colonne connait tous ses synapses
+                        c.addSynapse(s);
+                    }
+                }
+            }
+        }
+        else {
+            // Toutes les colonnes sont reliées à tous les neuronnes
+            for (int i = 0; i < nbColumns; i++) {
+                MyColumn c = lstMC.get(i);
+                for (int j = 0; j < nbInputs; j++) {
+                    // On relie la colonne à tous les neuronnes
+                    MyNeuron n = lstMN.get(j);
+                    EdgeInterface e = eb.getNewEdge(n.getNode(), c.getNode());
+                    // Le synapse sait à quel neuronne il est reliée
+                    MySynapse s = new MySynapse(e, n);
+                    e.setAbstractNetworkEdge(s);
+                    // La colonne connait tous ses synapses
+                    c.addSynapse(s);
+                }
+            }
+        }
+
+        // Le nombre d'entrées successives sans animation afin de faire un apprentissage rapide
+        this.nbApprentissage = nbApprentissage;
+        // La longueur max de la liste des dernières activations, pour la fréquence et le boost
+        this.longueurMemoireActivations = longueurMemoireActivations;
     }
 
     @Override
     public void run() {
         boolean loop = true;
+        final double MIN_VALUE = 0.8, UP_SYNAPSE = 0.05;
+        int nbLoops = 0;
         while (loop) {
+            // On met à jour la valeur de l'entrée (random, ..., voir fonction updateInput)
+            input.updateInput(nbLoops>this.nbApprentissage);
+
+            // On met à jour les neuronnes en fonction de l'entrée
+            input.positionToInput(lstMN);
 
             // 1) Calcul des valeurs des colonnes en fonction des entrées actives et du poids des synapses
             for (MyColumn c : lstMC) {
                 double value = 0;
                 for (MySynapse s : c.getSynapses()){
-                   if (s.getNeuron().isActive()){
-                       value += s.getCurrentValue();
-                   }
+                    // Avec boost global
+                    // Poids du synapse en prenant en compte le boost
+                    // ce boost permet d'activer virtuellement des liens, si jamais la colonne n'a aucun synapse actif par exemple
+                    double poids = s.getCurrentValue() * c.getBoostGlobal();
+                    // Si le neuronne et le synapse (en comptant le boost) sont actifs
+                    if (poids > s.getTHRESHOLD() && s.getNeuron().isActive()){
+                        // On ajoute le poids du synapse * le boost (compris entre treshold (0.5) et boost)
+                        value += poids;
+                    }
+                    /*
+                    // Sans boost global
+                    // Si le neuronne et le synapse sont actifs
+                    if (s.isActive() && s.getNeuron().isActive()){
+                        // On ajoute le poids du synapse (compris entre treshold (0.5) et 1)
+                        value += s.getCurrentValue();
+                    }
+                    */
                 }
                 // Min overlap
-                // Boost
+                if (value < MIN_VALUE){
+                    value = 0;
+                }
+                // Boost si on n'a pas été activée depuis longtemps
+                else{
+                    value *= c.getBoostInactivite();
+                }
                 c.setValue(value);
             }
-            loop = false;
 
-            /*
-            // processus de démonstration qui permet de voyager dans le graphe et de faire varier les état des synapses, entrées et colonnes
+            // 2) On active les colonnes
+            // Calcul de la valeur à partir de laquelle les colonnes seront activéss
+            ArrayList<MyColumn> toActive = new ArrayList<MyColumn>();
             for (MyColumn c : lstMC) {
-                if (new Random().nextBoolean()) {
-                    c.getNode().setState(NodeInterface.State.ACTIVATED);
-                } else {
-                    c.getNode().setState(NodeInterface.State.DESACTIVATED);
+                // On désactive toutes les colonnes
+                c.setActive(false);
+                // Si la valeur est supérieure à 0, la colonne est potentiellement active
+                if (c.getValue() > 0){
+                    toActive.add(c);
                 }
-                
-                for (EdgeInterface e : c.getNode().getEdgeIn()) {
-                    ((MySynapse) e.getAbstractNetworkEdge()).currentValueUdpate(new Random().nextDouble() - 0.5);
-                    MyNeuron n = (MyNeuron) e.getNodeIn().getAbstractNetworkNode(); // récupère le neurone d'entrée
-                    if (new Random().nextBoolean()) {
-                        n.getNode().setState(NodeInterface.State.ACTIVATED);
-                    } else {
-                        n.getNode().setState(NodeInterface.State.DESACTIVATED);
+            }
+            // Si on a trop de colonnes actives on en désactive
+            while (toActive.size() > NB_MAX_COL_ACTIVE){
+                double minValue = toActive.get(0).getValue();
+                MyColumn colMin = toActive.get(0);
+                // On recherche la colonne avec la plus petite val min
+                for (MyColumn c : toActive) {
+                    if (c.getValue() < minValue){
+                        minValue = c.getValue();
+                        colMin = c;
                     }
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(MyNetwork.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                // On l'enlève des colonnes à activer
+                toActive.remove(colMin);
+            }
+            // On active les colonnes restantes
+            for (MyColumn c : toActive) {
+                c.setActive(true);
+            }
+
+            // 3) Apprentissage : On met à jour les poids des synapses des colonnes actives
+            // Mise à jour sur les colonnes actives
+            for (MyColumn c : toActive){
+                for (MySynapse s : c.getSynapses()){
+                    // On met à jour les poids des synapses
+                    if (s.getNeuron().isActive()){
+                        s.currentValueUdpate(UP_SYNAPSE);
+                    }
+                    else{
+                        s.currentValueUdpate(-UP_SYNAPSE);
                     }
                 }
             }
-            */
+            // Boost
+            // Frequence max des colonnes
+            double maxFreq = lstMC.get(0).getFreqActivation();
+            for (MyColumn c : lstMC){
+                if (c.getFreqActivation() > maxFreq){
+                    maxFreq = c.getFreqActivation();
+                }
+            }
+            // Mise à jour du boost de toutes les colonnes
+            for (MyColumn c : lstMC){
+                // On augmente le boost global si on n'a pas été activé ( *1.1), on le réinitialise sinon ( =1)
+                c.updateBoostGlobal();
+                // On met à jour la liste des dernières activités
+                c.updateLastActivations(longueurMemoireActivations);
+                // On boost les colonnes qui n'ont pas été activées "depuis longtemps"
+                if (c.getFreqActivation() < 0.1 * maxFreq) {
+                    c.setBoostInactivite(c.getBoostInactivite() * 5);
+                }
+                else {
+                    c.setBoostInactivite(1);
+                }
+            }
+
+
+            // Tempo pour voir l'animation, au début on laisse une phase d'apprentissage
+            if(nbLoops>this.nbApprentissage) {
+                try {
+                    input.afficherEntree();
+                    Thread.sleep(2000);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(MyNetwork.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            nbLoops++;
         }
     }
     

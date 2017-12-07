@@ -15,13 +15,16 @@ import java.util.Random;
  */
 public class MySynapse extends AbstractNetworkEdge {
     
-    private double currentValue = new Random().nextDouble();
+    private double currentValue;
     private final double THRESHOLD = 0.5;
     private MyNeuron neuron;
     
     
     protected MySynapse(EdgeInterface _edge, MyNeuron n) {
         super(_edge);
+        // valeur entre 0.3 et 0.7 pour etre proche du changement (THRESHOLD)
+        currentValue = ((double) new Random().nextInt(400) + 300)/1000;
+        // Update pour désactiver les synapses < THRESHOLD
         currentValueUdpate(0);
         neuron = n;
     }
@@ -49,6 +52,14 @@ public class MySynapse extends AbstractNetworkEdge {
 
     public MyNeuron getNeuron() {
         return neuron;
+    }
+
+    public boolean isActive(){
+        return currentValue >= THRESHOLD;
+    }
+
+    public double getTHRESHOLD(){
+        return THRESHOLD;
     }
 
 }

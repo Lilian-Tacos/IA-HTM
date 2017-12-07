@@ -7,9 +7,12 @@ package htm;
 import graph.graphstream.GraphStreamBuilder;
 import graph.graphstream.MyGraphStreamEdge;
 import graph.graphstream.MyGraphStreamNode;
+import input.Entree;
 import org.graphstream.graph.*;
 import org.graphstream.graph.implementations.AbstractGraph;
 import org.graphstream.graph.implementations.SingleGraph;
+
+import java.awt.*;
 
 /**
  *
@@ -31,7 +34,16 @@ public class HTM {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-
+        // Variables du réseau
+        final int tailleGrille = 5,
+                nbInputs = 40,
+                nbColumns = 6,
+                nbMaxColActive = 2,
+                longueurMemoireActivations = 50,
+                nbApprentissage = 200,
+                voisinage = 0;
+        final boolean splitColonnes = true,
+                entreeManuel = false;
 
         Graph graph = new SingleGraph("graph"); // création du graphe
         graph.setNodeFactory(new NodeFactory<MyGraphStreamNode>() {
@@ -51,17 +63,13 @@ public class HTM {
 		});
         
         GraphStreamBuilder gb = new GraphStreamBuilder(graph);
-        MyNetwork mn = new MyNetwork(gb, gb);
+        MyNetwork mn = new MyNetwork(gb, new Entree(tailleGrille, new Point(0,0), entreeManuel));
         
-        mn.buildNetwork(16, 5); // un réseau de démonstration avec 16 entrées et 5 colonnes
+        mn.buildNetwork(nbInputs, nbColumns, nbMaxColActive, nbApprentissage, splitColonnes, longueurMemoireActivations, voisinage);
         graph.display(false);
-        
-        
+
+
         new Thread(mn).start(); // exécution d'un processus d'apprentissage, à définir, pour mn
-        
-        
-        
-        
     }
     
 }
